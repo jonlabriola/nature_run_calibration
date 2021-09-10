@@ -28,7 +28,7 @@ thin_incr = 25                 #--- The number of grid points to thin observatio
 if arguments.vertical_localization:
    dincr = 0.25                      #--- The correlation radius increment 
    eval_dis = np.arange(dincr,6.0,dincr) #--- The range of correlation radii to look at
-
+   thin_incr = 10
 else:
    dincr = 2                      #--- The correlation radius increment 
    eval_dis = np.arange(dincr,70,dincr) #--- The range of correlation radii to look at
@@ -85,7 +85,7 @@ for mindex,mem in enumerate(range(1,nen+1)):
       fcst = np.squeeze(dumpfile.variables[fcst_var][0,:,ymin:ymax,xmin:xmax])
       [nz,ny,nx] = fcst.shape
       for zindex in range(0,nz):
-         #fcst[zindex] = fcst[zindex] - np.mean(fcst[zindex])
+         fcst[zindex] = fcst[zindex] - np.mean(fcst[zindex])
          fcst[zindex] =  ndimage.gaussian_filter(fcst[zindex],sigma=8.0)
       #--- make forecast array [nob,nz]
       fcst = np.transpose(np.reshape(fcst[:,::thin_incr,::thin_incr],(nz,nob),order='F'))
@@ -95,6 +95,7 @@ for mindex,mem in enumerate(range(1,nen+1)):
    #--- Preserve all forecast gridpoints on the same horizontal plane as observations
    else:
       fcst = np.squeeze(dumpfile.variables[fcst_var][0,lev,ymin:ymax,xmin:xmax])
+      fcst = fcst - np.mean(fcst)
       fcst = ndimage.gaussian_filter(fcst,sigma=8.0)
       [ny,nx] = fcst.shape
       xh_fcst = np.tile(dumpfile.variables['xh'][xmin:xmax],(ny,1))
@@ -196,10 +197,13 @@ for mindex in range(0,nen):
 plt.plot(eval_dis,np.percentile(ens_cor,50,axis=0),color='crimson',linewidth=4,label='Ensemble Median')
 plt.xlabel('Distance (km)')
 plt.ylabel('Absolute Correlation')
-plt.ylim([0,np.nanmax(ens_cor)])
+plt.ylim([0,1])#np.nanmax(ens_cor)])
 plt.xlim([0,np.nanmax(eval_dis)])
 plt.legend()
-outpath = '%s_%s_t%d_lev%03d_nen%03d.png'%(arguments.fcst_var,arguments.ob_var,arguments.time,arguments.lev,nen)
+if arguments.vertical_localization:
+   outpath = '%s_%s_t%d_lev%03d_nen%03d_vert_pert.png'%(arguments.fcst_var,arguments.ob_var,arguments.time,arguments.lev,nen)
+else:
+   outpath = '%s_%s_t%d_lev%03d_nen%03d_pert.png'%(arguments.fcst_var,arguments.ob_var,arguments.time,arguments.lev,nen)
 plt.title('Correlation between %s (obs) and %s (fcst)'%(arguments.ob_var,arguments.fcst_var))
 plt.savefig(outpath)
 #plt.show()
